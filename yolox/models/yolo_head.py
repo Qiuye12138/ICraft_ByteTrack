@@ -144,6 +144,7 @@ class YOLOXHead(nn.Module):
 
     def forward(self, xin, labels=None, imgs=None):
         outputs = []
+        outputx = []
         origin_preds = []
         x_shifts = []
         y_shifts = []
@@ -157,11 +158,11 @@ class YOLOXHead(nn.Module):
             reg_x = x
 
             cls_feat = cls_conv(cls_x)
-            cls_output = self.cls_preds[k](cls_feat)
-
             reg_feat = reg_conv(reg_x)
-            reg_output = self.reg_preds[k](reg_feat)
+
             obj_output = self.obj_preds[k](reg_feat)
+            reg_output = self.reg_preds[k](reg_feat)
+            cls_output = self.cls_preds[k](cls_feat)
 
             if self.training:
                 output = torch.cat([reg_output, obj_output, cls_output], 1)
@@ -190,6 +191,9 @@ class YOLOXHead(nn.Module):
                 output = torch.cat(
                     [reg_output, obj_output.sigmoid(), cls_output.sigmoid()], 1
                 )
+                outputx.append(reg_output)
+                outputx.append(obj_output)
+                outputx.append(cls_output)
 
             outputs.append(output)
 
@@ -213,7 +217,7 @@ class YOLOXHead(nn.Module):
             if self.decode_in_inference:
                 return self.decode_outputs(outputs, dtype=xin[0].type())
             else:
-                return outputs
+                return outputx
 
     def get_output_and_grid(self, output, k, stride, dtype):
         grid = self.grids[k]

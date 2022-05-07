@@ -1,4 +1,5 @@
 import argparse
+from email.policy import strict
 import os
 import os.path as osp
 import time
@@ -46,6 +47,7 @@ def make_parser():
         help="pls input your expriment description file",
     )
     parser.add_argument("-c", "--ckpt", default=None, type=str, help="ckpt for eval")
+    parser.add_argument("--export", default=None, type=str, help="export this model")
     parser.add_argument(
         "--device",
         default="gpu",
@@ -132,6 +134,7 @@ class Predictor(object):
         self.test_size = exp.test_size
         self.device = device
         self.fp16 = fp16
+        self.export = False
         if trt_file is not None:
             from torch2trt import TRTModule
 
@@ -165,6 +168,11 @@ class Predictor(object):
 
         with torch.no_grad():
             timer.tic()
+            if self.export:
+                self.model.head.decode_in_inference = False
+                trcnet = torch.jit.trace(self.model, img)
+                trcnet.save("byteTracker_traced.pt")
+                exit()
             outputs = self.model(img)
             if self.decoder is not None:
                 outputs = self.decoder(outputs, dtype=outputs.type())
@@ -358,6 +366,8 @@ def main(exp, args):
         decoder = None
 
     predictor = Predictor(model, exp, trt_file, decoder, args.device, args.fp16)
+    if args.export:
+        predictor.export = True
     current_time = time.localtime()
     if args.demo == "image":
         image_demo(predictor, vis_folder, current_time, args)
