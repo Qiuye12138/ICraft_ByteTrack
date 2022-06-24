@@ -10,6 +10,9 @@ import argparse
 import random
 import warnings
 
+import os 
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
 
 def make_parser():
     parser = argparse.ArgumentParser("YOLOX train parser")
